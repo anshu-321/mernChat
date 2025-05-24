@@ -6,6 +6,7 @@ const User = require("./models/User");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
+const ws = require("ws");
 
 dotenv.config();
 mongoose.connect(process.env.MONGO_URL);
@@ -93,4 +94,40 @@ app.get("/profile", (req, res) => {
   }
 });
 
-app.listen(4040);
+//creating a web socket server for knowing the live status of the user
+const server = app.listen(4040);
+
+//wss is the web socket server - ws is the web socket library
+const wss = new ws.WebSocketServer({ server });
+wss.on("connection", (connection, req) => {
+  const cookies = req.headers.cookie;
+  if (cookies) {
+    const tokenCookieString = cookies
+      .split(";")
+      .find((str) => str.startsWith("token="));
+    if (tokenCookieString) {
+      const token = tokenCookieString.split("=")[1];
+      if (token) {
+        jwt.verify(token, jwtSecret, {}, (err, userData) => {
+          if (err) throw err;
+          const { userId, username } = userData;
+          connection.userId = userId; //connection is the web socket connection
+          connection.username = username; //all conncetions are stored in the connection object in wss clients
+        });
+      }
+    }
+  }
+
+  //to see the users who are online
+  [...wss.clients].forEach((client) => {
+    //converting the wss.clients(object) to an array
+    client.send(
+      JSON.stringify({
+        online: [...wss.clients].map((c) => ({
+          userId: c.userId,
+          username: c.username,
+        })), //sending the userId and username of all the clients
+      })
+    );
+  });
+});
