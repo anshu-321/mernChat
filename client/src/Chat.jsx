@@ -54,7 +54,7 @@ export default function Chat() {
         recipient: selectedUserId,
         _id: Date.now(),
       },
-      //demo change
+      //demo change to use _id instead of id
     ]);
   }
 
