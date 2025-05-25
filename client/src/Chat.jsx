@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import Avatar from "./Avatar";
 import Logo from "./Logo";
 import { UserContext } from "./UserContext";
+import { uniqBy } from "lodash";
 
 export default function Chat() {
   const [ws, setWs] = useState(null);
@@ -9,6 +10,7 @@ export default function Chat() {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const { username, id } = useContext(UserContext);
   const [newMessageText, setNewMessageText] = useState("");
+  const [messages, setMessages] = useState([]);
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:4040");
@@ -25,9 +27,13 @@ export default function Chat() {
   }
 
   function handleMessage(e) {
+    //for incoming messages
     const messageData = JSON.parse(e.data);
+    console.log({ e, messageData });
     if ("online" in messageData) {
       showOnlinePeople(messageData.online);
+    } else if ("text" in messageData) {
+      setMessages((prev) => [...prev, { ...messageData }]);
     }
   }
 
@@ -35,16 +41,27 @@ export default function Chat() {
     ev.preventDefault();
     ws.send(
       JSON.stringify({
-        message: {
-          recipient: selectedUserId,
-          text: newMessageText,
-        },
+        recipient: selectedUserId,
+        text: newMessageText,
       })
     );
+    setNewMessageText("");
+    setMessages((prev) => [
+      ...prev,
+      {
+        text: newMessageText,
+        sender: id,
+        recipient: selectedUserId,
+        _id: Date.now(),
+      },
+    ]);
   }
 
   const onlinePeopleExceptCurrUser = { ...onlinePeople };
   delete onlinePeopleExceptCurrUser[id];
+
+  //lodAsh is a library having common functions , like using filtering uniqueBY Id in our case
+  const messageWithoutDuplicates = uniqBy(messages, "id");
 
   return (
     <div className="flex h-screen">
@@ -74,6 +91,13 @@ export default function Chat() {
           {!selectedUserId && (
             <div className="flex h-full items-center justify-center text-gray-400">
               No selected User
+            </div>
+          )}
+          {selectedUserId && (
+            <div>
+              {messageWithoutDuplicates.map((messages) => (
+                <div>{messages.text}</div>
+              ))}
             </div>
           )}
         </div>
