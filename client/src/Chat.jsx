@@ -8,6 +8,7 @@ export default function Chat() {
   const [onlinePeople, setOnlinePeople] = useState({});
   const [selectedUserId, setSelectedUserId] = useState(null);
   const { username, id } = useContext(UserContext);
+  const [newMessageText, setNewMessageText] = useState("");
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:4040");
@@ -20,7 +21,6 @@ export default function Chat() {
     peopleArr.forEach(({ userId, username }) => {
       people[userId] = username;
     });
-    console.log("Online people:", people);
     setOnlinePeople(people);
   }
 
@@ -29,6 +29,18 @@ export default function Chat() {
     if ("online" in messageData) {
       showOnlinePeople(messageData.online);
     }
+  }
+
+  function sendMessage(ev) {
+    ev.preventDefault();
+    ws.send(
+      JSON.stringify({
+        message: {
+          recipient: selectedUserId,
+          text: newMessageText,
+        },
+      })
+    );
   }
 
   const onlinePeopleExceptCurrUser = { ...onlinePeople };
@@ -65,29 +77,33 @@ export default function Chat() {
             </div>
           )}
         </div>
-        <div className="flex gap-2 ">
-          <input
-            type="text"
-            placeholder="Type message"
-            className="bg-white border p-2 flex flex-grow"
-          />
-          <button className="bg-blue-500 text-white p-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="size-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
-              />
-            </svg>
-          </button>
-        </div>
+        {selectedUserId && (
+          <form className="flex gap-2 " onSubmit={sendMessage}>
+            <input
+              type="text"
+              value={newMessageText}
+              onChange={(e) => setNewMessageText(e.target.value)}
+              placeholder="Type message"
+              className="bg-white border p-2 flex flex-grow"
+            />
+            <button className="bg-blue-500 text-white p-2 cursor-pointer">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="size-6"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
+                />
+              </svg>
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

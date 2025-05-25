@@ -9,7 +9,10 @@ const bcrypt = require("bcryptjs");
 const ws = require("ws");
 
 dotenv.config();
-mongoose.connect(process.env.MONGO_URL);
+mongoose
+  .connect(process.env.MONGO_URL)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 const jwtSecret = process.env.JWT_TOKEN;
 const bcryptSalt = bcrypt.genSaltSync(10);
 
@@ -117,6 +120,22 @@ wss.on("connection", (connection, req) => {
       }
     }
   }
+
+  connection.on("message", (message) => {
+    const messageData = JSON.parse(message.toString());
+    const { recipient, text } = messageData.message;
+    if (recipient && text) {
+      [...wss.clients]
+        .filter((c) => c.userId === recipient)
+        .forEach((client) => {
+          client.send(
+            JSON.stringify({
+              text,
+            })
+          );
+        });
+    }
+  });
 
   //to see the users who are online
   [...wss.clients].forEach((client) => {
