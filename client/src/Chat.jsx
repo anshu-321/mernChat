@@ -54,7 +54,7 @@ export default function Chat() {
         recipient: selectedUserId,
         _id: Date.now(),
       },
-      //demo changes
+      //demo update for commit
     ]);
   }
 
