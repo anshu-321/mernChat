@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar";
 import Logo from "./Logo";
 import { UserContext } from "./UserContext";
@@ -11,6 +11,7 @@ export default function Chat() {
   const { username, id } = useContext(UserContext);
   const [newMessageText, setNewMessageText] = useState("");
   const [messages, setMessages] = useState([]);
+  const messageEndRef = useRef(null);
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:4040");
@@ -39,6 +40,9 @@ export default function Chat() {
 
   function sendMessage(ev) {
     ev.preventDefault();
+    if (newMessageText == "") {
+      return;
+    }
     ws.send(
       JSON.stringify({
         recipient: selectedUserId,
@@ -52,9 +56,8 @@ export default function Chat() {
         text: newMessageText,
         sender: id,
         recipient: selectedUserId,
-        _id: Date.now(),
+        id: Date.now(), // Temporary ID for the message
       },
-      //demo update for commit
     ]);
   }
 
@@ -64,8 +67,16 @@ export default function Chat() {
   //lodAsh is a library having common functions , like using filtering uniqueBY Id in our case
   const messageWithoutDuplicates = uniqBy(messages, "id");
 
+  useEffect(() => {
+    //scroll to the bottom of the chat when new messages are added
+    // This effect runs whenever new message added to array change
+    if (messageEndRef.current) {
+      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen ">
       <div className="bg-blue-100 w-1/3 pl-4 pr-1">
         <Logo />
         {Object.keys(onlinePeopleExceptCurrUser).map((userId) => (
@@ -95,10 +106,27 @@ export default function Chat() {
             </div>
           )}
           {selectedUserId && (
-            <div>
-              {messageWithoutDuplicates.map((messages) => (
-                <div>{messages.text}</div>
-              ))}
+            <div className="relative h-full">
+              <div className="overflow-y-scroll absolute inset-0 p-2">
+                {messageWithoutDuplicates.map((messages) => (
+                  <div
+                    className={
+                      "mb-2 p-2 rounded-md " +
+                      (messages.sender === id
+                        ? "bg-gray-400 mr-20 "
+                        : "bg-blue-500 ml-20 text-indigo-100 ")
+                    }
+                    key={messages.id}
+                  >
+                    Sender: {messages.sender} <br />
+                    To : {id} <br />
+                    {messages.text}
+                  </div>
+                ))}
+                <div ref={messageEndRef} />
+                {/* useRef Hook used to reference to */}
+                {/* the bottom most message */}
+              </div>
             </div>
           )}
         </div>
