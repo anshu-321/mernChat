@@ -8,6 +8,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const ws = require("ws");
+const { create } = require("lodash");
 
 dotenv.config();
 mongoose
@@ -86,12 +87,41 @@ app.post("/register", async (req, res) => {
   }
 });
 
+async function getUserDataFromRequest(req) {
+  return new Promise((resolve, reject) => {
+    const token = req.cookies?.token;
+    if (token) {
+      jwt.verify(token, jwtSecret, {}, (err, userData) => {
+        if (err) throw err;
+        resolve(userData);
+      });
+    } else {
+      reject("No token");
+    }
+  });
+}
+
+app.get("/messages/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const userData = await getUserDataFromRequest(req);
+  const ourUserId = userData.userId;
+  const messages = await Message.find({
+    sender: { $in: [userId, ourUserId] }, // Find messages where the sender is either the userId or ourUserId
+    recipient: { $in: [userId, ourUserId] },
+  })
+    .sort({ createdAt: -1 }) // Sort messages by createdAt in descending order
+    .exec(); // Execute the query to get the messages
+  res.json(messages);
+});
+
+// Route to get the profile of the currently authenticated user
 app.get("/profile", (req, res) => {
   const token = req.cookies?.token;
   if (token) {
+    // Verify the token using the secret key
     jwt.verify(token, jwtSecret, {}, (err, userData) => {
-      if (err) throw err;
-      res.json(userData);
+      if (err) throw err; // If token verification fails, throw an error
+      res.json(userData); // Send the decoded user data as a JSON response
     });
   } else {
     res.status(401).json("No token");

@@ -3,6 +3,7 @@ import Avatar from "./Avatar";
 import Logo from "./Logo";
 import { UserContext } from "./UserContext";
 import { uniqBy } from "lodash";
+import axios from "axios";
 
 export default function Chat() {
   const [ws, setWs] = useState(null);
@@ -16,7 +17,8 @@ export default function Chat() {
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:4040");
     setWs(ws);
-    ws.addEventListener("message", handleMessage);
+    ws.addEventListener("message", handleMessage); // for incoming messages
+    ws.addEventListener("close", () => console.log("Connection closed")); // for connection close
   }, []);
 
   function showOnlinePeople(peopleArr) {
@@ -75,6 +77,13 @@ export default function Chat() {
     }
   }, [messages]);
 
+  // for fetching the messages from the server
+  useEffect(() => {
+    if (selectedUserId) {
+      axios.get("/messages/" + selectedUserId);
+    }
+  }, [selectedUserId]);
+
   return (
     <div className="flex h-screen ">
       <div className="bg-blue-100 w-1/3 pl-4 pr-1">
@@ -126,6 +135,31 @@ export default function Chat() {
                 <div ref={messageEndRef} />
                 {/* useRef Hook used to reference to */}
                 {/* the bottom most message */}
+              </div>
+              <div
+                className="absolute bottom-2 right-0 bg-white p-2 rounded-full cursor-pointer hover:bg-green-300"
+                onClick={() => {
+                  if (messageEndRef.current) {
+                    messageEndRef.current.scrollIntoView({
+                      behavior: "smooth",
+                    });
+                  }
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3"
+                  />
+                </svg>
               </div>
             </div>
           )}
