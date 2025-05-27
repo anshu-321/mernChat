@@ -127,6 +127,11 @@ app.get("/profile", (req, res) => {
   }
 });
 
+app.get("/people", async (req, res) => {
+  const users = await User.find({}, { _id: 1, username: 1 });
+  res.json(users);
+});
+
 //creating a web socket server for knowing the live status of the user
 const server = app.listen(4040);
 

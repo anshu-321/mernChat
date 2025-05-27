@@ -2,12 +2,14 @@ import { useContext, useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar";
 import Logo from "./Logo";
 import { UserContext } from "./UserContext";
-import { uniqBy } from "lodash";
+import { set, uniqBy } from "lodash";
 import axios from "axios";
+import Contact from "./Contact";
 
 export default function Chat() {
   const [ws, setWs] = useState(null);
   const [onlinePeople, setOnlinePeople] = useState({});
+  const [offlinePeople, setOfflinePeople] = useState({});
   const [selectedUserId, setSelectedUserId] = useState(null);
   const { username, id } = useContext(UserContext);
   const [newMessageText, setNewMessageText] = useState("");
@@ -82,6 +84,20 @@ export default function Chat() {
     }
   }, [messages]);
 
+  useEffect(() => {
+    axios.get("/people").then((res) => {
+      const ppl = res.data.filter((person) => person._id !== id);
+      const offlinePeopleArr = ppl.filter(
+        (person) => !Object.keys(onlinePeople).includes(person._id)
+      );
+      const offlinePeopleObj = {};
+      offlinePeopleArr.forEach((person) => {
+        offlinePeopleObj[person._id] = person.username;
+      });
+      setOfflinePeople(offlinePeopleObj);
+    });
+  }, [onlinePeople]);
+
   // for fetching the messages from the server
   useEffect(() => {
     if (selectedUserId) {
@@ -96,22 +112,24 @@ export default function Chat() {
       <div className="bg-blue-100 w-1/3 pl-4 pr-1">
         <Logo />
         {Object.keys(onlinePeopleExceptCurrUser).map((userId) => (
-          <div
+          <Contact
             key={userId}
-            onClick={() => setSelectedUserId(userId)}
-            className={
-              "border-b border-gray-300 flex items-center gap-2 my-2 cursor-pointer hover:bg-blue-200 rounded-lg h-12" +
-              (userId === selectedUserId ? "bg-blue-400" : "")
-            }
-          >
-            {userId === selectedUserId ? (
-              <div className="border-l border-4 border-amber-800 h-12 rounded-r-full"></div>
-            ) : (
-              ""
-            )}
-            <Avatar username={onlinePeople[userId]} userId={userId} />
-            <span>{onlinePeople[userId]}</span>
-          </div>
+            userId={userId}
+            selectedUserId={selectedUserId}
+            setSelectedUserId={setSelectedUserId}
+            onlinePeople={onlinePeople}
+            onlineStatus={true}
+          />
+        ))}
+        {Object.keys(offlinePeople).map((userId) => (
+          <Contact
+            key={userId}
+            userId={userId}
+            selectedUserId={selectedUserId}
+            setSelectedUserId={setSelectedUserId}
+            onlinePeople={offlinePeople}
+            onlineStatus={false}
+          />
         ))}
       </div>
       <div className="flex flex-col bg-blue-200 w-2/3 p-2">
