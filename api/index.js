@@ -8,7 +8,6 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const ws = require("ws");
-const { create } = require("lodash");
 
 dotenv.config();
 mongoose
@@ -109,7 +108,7 @@ app.get("/messages/:userId", async (req, res) => {
     sender: { $in: [userId, ourUserId] }, // Find messages where the sender is either the userId or ourUserId
     recipient: { $in: [userId, ourUserId] },
   })
-    .sort({ createdAt: -1 }) // Sort messages by createdAt in descending order
+    .sort({ createdAt: 1 }) // Sort messages by creation date in ascending order
     .exec(); // Execute the query to get the messages
   res.json(messages);
 });
@@ -172,7 +171,7 @@ wss.on("connection", (connection, req) => {
               text,
               sender: connection.userId,
               recipient,
-              id: messageDoc._id,
+              _id: messageDoc._id,
             })
           );
         });

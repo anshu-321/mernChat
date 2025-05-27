@@ -18,7 +18,12 @@ export default function Chat() {
     const ws = new WebSocket("ws://localhost:4040");
     setWs(ws);
     ws.addEventListener("message", handleMessage); // for incoming messages
-    ws.addEventListener("close", () => console.log("Connection closed")); // for connection close
+    ws.addEventListener("close", () => {
+      // for connection close , to reconnect when connection is closed
+      setTimeout(() => {
+        console.log("Connection closed, reconnecting...");
+      }, 1000);
+    });
   }, []);
 
   function showOnlinePeople(peopleArr) {
@@ -58,7 +63,7 @@ export default function Chat() {
         text: newMessageText,
         sender: id,
         recipient: selectedUserId,
-        id: Date.now(), // Temporary ID for the message
+        _id: Date.now(), // Temporary ID for the message
       },
     ]);
   }
@@ -67,7 +72,7 @@ export default function Chat() {
   delete onlinePeopleExceptCurrUser[id];
 
   //lodAsh is a library having common functions , like using filtering uniqueBY Id in our case
-  const messageWithoutDuplicates = uniqBy(messages, "id");
+  const messageWithoutDuplicates = uniqBy(messages, "_id");
 
   useEffect(() => {
     //scroll to the bottom of the chat when new messages are added
@@ -80,7 +85,9 @@ export default function Chat() {
   // for fetching the messages from the server
   useEffect(() => {
     if (selectedUserId) {
-      axios.get("/messages/" + selectedUserId);
+      axios.get("/messages/" + selectedUserId).then((res) => {
+        setMessages(res.data);
+      });
     }
   }, [selectedUserId]);
 
@@ -122,13 +129,11 @@ export default function Chat() {
                     className={
                       "mb-2 p-2 rounded-md " +
                       (messages.sender === id
-                        ? "bg-gray-400 mr-20 "
-                        : "bg-blue-500 ml-20 text-indigo-100 ")
+                        ? "bg-gray-400 mr-80"
+                        : "bg-blue-500 ml-80 text-indigo-100 ")
                     }
-                    key={messages.id}
+                    key={messages._id}
                   >
-                    Sender: {messages.sender} <br />
-                    To : {id} <br />
                     {messages.text}
                   </div>
                 ))}
