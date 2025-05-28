@@ -8,14 +8,21 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const ws = require("ws");
-
+const { OpenAI } = require("openai");
 dotenv.config();
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 mongoose
   .connect(process.env.MONGO_URL)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 const jwtSecret = process.env.JWT_TOKEN;
 const bcryptSalt = bcrypt.genSaltSync(10);
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const app = express();
 app.use(express.json());
@@ -193,8 +200,28 @@ wss.on("connection", (connection, req) => {
   }
 
   connection.on("message", async (message) => {
+    //
     const messageData = JSON.parse(message.toString());
     const { recipient, text } = messageData;
+
+    // if (recipient === "chatgpt") {
+    //   // Call OpenAI API
+    //   const chatResponse = await openai.chat.completions.create({
+    //     model: "gpt-3.5-turbo",
+    //     messages: [{ role: "user", content: text }],
+    //   });
+
+    //   const replyText = chatResponse.choices[0].message.content;
+
+    //   // Send response back to the user
+    //   ws.send(
+    //     JSON.stringify({
+    //       sender: "chatgpt",
+    //       text: replyText,
+    //       _id: uuidv4(),
+    //     })
+    //   );
+    // }
 
     if (recipient && text) {
       //message is saved on the database before sending it to the recipient
@@ -221,6 +248,8 @@ wss.on("connection", (connection, req) => {
 
   notifyAboutOnlinePeople(); // notify about online people when a new connection is made
 });
+
+// wss.on("")
 
 wss.on("close", (connection) => {
   console.log("Connection closed", connection);

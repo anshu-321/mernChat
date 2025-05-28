@@ -6,6 +6,11 @@ import axios from "axios";
 import Contact from "./Contact";
 
 export default function Chat() {
+  const chatGptContact = {
+    userId: "chatgpt",
+    username: "ChatGPT",
+  };
+
   const [ws, setWs] = useState(null);
   const [onlinePeople, setOnlinePeople] = useState({});
   const [offlinePeople, setOfflinePeople] = useState({});
@@ -32,6 +37,7 @@ export default function Chat() {
     peopleArr.forEach(({ userId, username }) => {
       people[userId] = username;
     });
+    people["chatgpt"] = chatGptContact.username;
     setOnlinePeople(people);
   }
 
