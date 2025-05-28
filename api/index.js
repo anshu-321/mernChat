@@ -138,6 +138,38 @@ const server = app.listen(4040);
 //wss is the web socket server - ws is the web socket library
 const wss = new ws.WebSocketServer({ server });
 wss.on("connection", (connection, req) => {
+  function notifyAboutOnlinePeople() {
+    //notify other people when someone connects
+    [...wss.clients].forEach((client) => {
+      //converting the wss.clients(object) to an array
+      client.send(
+        JSON.stringify({
+          online: [...wss.clients].map((c) => ({
+            userId: c.userId,
+            username: c.username,
+          })), //sending the userId and username of all the clients
+        })
+      );
+    });
+  }
+
+  //to check if the connection is alive
+  connection.isAlive = true;
+  connection.timer = setInterval(() => {
+    connection.ping(); // ping the connection to check if it is alive
+    connection.deathTimer = setTimeout(() => {
+      connection.isAlive = false; // if no pong is received, set isAlive to false
+      connection.terminate();
+      notifyAboutOnlinePeople();
+    }, 1000);
+  }, 5000);
+
+  //for each ping we need to make pong
+  connection.on("pong", () => {
+    //pong is received from each browser connceted
+    clearTimeout(connection.deathTimer); // clear the death timer if pong is received
+  });
+
   const cookies = req.headers.cookie;
   if (cookies) {
     const tokenCookieString = cookies
@@ -183,16 +215,9 @@ wss.on("connection", (connection, req) => {
     }
   });
 
-  //to see the users who are online
-  [...wss.clients].forEach((client) => {
-    //converting the wss.clients(object) to an array
-    client.send(
-      JSON.stringify({
-        online: [...wss.clients].map((c) => ({
-          userId: c.userId,
-          username: c.username,
-        })), //sending the userId and username of all the clients
-      })
-    );
-  });
+  notifyAboutOnlinePeople(); // notify about online people when a new connection is made
+});
+
+wss.on("close", (connection) => {
+  console.log("Connection closed", connection);
 });
